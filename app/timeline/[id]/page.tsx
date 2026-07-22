@@ -1,3 +1,6 @@
+import Link from 'next/link'
+import { MdOutlineNavigateBefore } from "react-icons/md";
+import { Group, Stack } from '@mantine/core'
 import EventCard from '@/app/timeline/components/EventCard'
 
 
@@ -7,6 +10,14 @@ export default async function EventDetailPage({params}: { params: TParam }) {
     const {id} = await params
 
     return (
-        <EventCard eventId={id}/>
+        <Stack>
+            <Link href={`/timeline`}>
+                <Group>
+                    <MdOutlineNavigateBefore />
+                    Back
+                </Group>
+            </Link>
+            <EventCard eventId={id}/>
+        </Stack>
     )
 }
