@@ -74,7 +74,10 @@ export default function DetectionsPage() {
                     <MultiSelect
                         label="Labels"
                         data={labels}
-                        onChange={value => setSelectedLabels(value)}
+                        onChange={value => {
+                            setSelectedLabels(value)
+                            return onFiltersChange()
+                        }}
                         value={selectedLabels}
                     />
                 </div>
@@ -89,8 +92,8 @@ export default function DetectionsPage() {
                         ))}
                         onChange={value => {
                             const ids: number[] = value.map(Number)
-
                             setSelectedIds(ids)
+                            return onFiltersChange()
                         }}
                         value={selectedIds.map(String)}
                     />
