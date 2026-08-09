@@ -11,7 +11,7 @@ export default async function EventDetailPage({params}: { params: TParam }) {
 
     return (
         <Stack>
-            <Link href={`/timeline`}>
+            <Link href={`/timeline`} scroll={false}>
                 <Group>
                     <MdOutlineNavigateBefore />
                     Back

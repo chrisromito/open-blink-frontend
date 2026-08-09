@@ -8,6 +8,7 @@ import {DateTimePicker} from '@mantine/dates'
 
 import {TDetectionEvent} from '@/app/types'
 import EventTimeline from '@/app/timeline/components/EventTimeline'
+import EventList from '@/app/timeline/components/EventList'
 
 type TimelineClientProps = {
     events: TDetectionEvent[]
@@ -105,7 +106,7 @@ export default function TimelineClient({
                 <Grid.Col span={{base: 12, lg: 3}}>
                     {isPending ? <Loader/> : null}
 
-                    <EventTimeline
+                    <EventList
                         events={events}
                         selectedId={selectedEventId}
                         setSelectedId={selectEvent}

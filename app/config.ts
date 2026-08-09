@@ -1,4 +1,5 @@
-export const ApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+const getApiUrl = (): string => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+export const ApiUrl: string = getApiUrl()
 
 export function getUrl(path: string, params?: URLSearchParams): URL {
     const fullUrl = new URL(path, ApiUrl)
