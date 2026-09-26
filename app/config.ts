@@ -5,7 +5,7 @@ export function getUrl(path: string, params?: URLSearchParams): URL {
     const fullUrl = new URL(path, ApiUrl)
     if (params) {
         for (const [key, value] of params?.entries()) {
-            fullUrl.searchParams.set(key, value)
+            fullUrl.searchParams.append(key, value)
         }
     }
     return fullUrl

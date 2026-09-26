@@ -1,106 +1,93 @@
 'use client'
-import {Group, MultiSelect, Stack} from '@mantine/core'
-import {useEffect, useState} from 'react'
-import DetectionCard from '@/app/detections/components/DetectionCard'
-import {getUrl} from '@/app/config'
-import {TDetection, TDevice} from '@/app/types'
-import {sortByCreatedAt} from '@/app/lib/sortBy'
-import {getDevices, getLabels} from '@/app/lib/devices'
 
+import {useEffect} from 'react'
+import {Alert, Group, Loader, MultiSelect, Stack} from '@mantine/core'
+import DetectionCard from '@/app/detections/components/DetectionCard'
+import {
+    DetectionsProvider,
+    useDetectionsStore
+} from '@/app/detections/store/provider'
 
 export default function DetectionsPage() {
-    // Labels
-    const [labels, setLabels] = useState<string[]>([])
-    const [selectedLabels, setSelectedLabels] = useState<string[]>([])
-    // Devices
-    const [devices, setDevices] = useState<TDevice[]>([])
-    const [selectedIds, setSelectedIds] = useState<number[]>([])
+    return (
+        <DetectionsProvider>
+            <DetectionsPageContent/>
+        </DetectionsProvider>
+    )
+}
 
-    // Detections
-    const [detections, setDetections] = useState<TDetection[]>([])
+function DetectionsPageContent() {
+    const labels = useDetectionsStore((state) => state.labels)
+    const selectedLabels = useDetectionsStore((state) => state.selectedLabels)
 
-    const onFiltersChange = async () => {
-        const params = new URLSearchParams()
-        labels.forEach(label => {
-            params.append('label', label)
-        })
-        selectedIds.forEach(did => {
-            params.append('device_id', String(did))
-        })
-        const res: TDetection[] = await fetch(getUrl('api/detection-image', params))
-            .then(res => res.json())
-        setDetections(sortByCreatedAt(res))
-    }
+    const devices = useDetectionsStore((state) => state.devices)
+    const selectedDeviceIds = useDetectionsStore((state) => state.selectedDeviceIds)
+
+    const detections = useDetectionsStore((state) => state.detections)
+
+    const loadingFilters = useDetectionsStore((state) => state.loadingFilters)
+    const loadingDetections = useDetectionsStore((state) => state.loadingDetections)
+    const error = useDetectionsStore((state) => state.error)
+
+    const loadFilters = useDetectionsStore((state) => state.loadFilters)
+    const setSelectedLabels = useDetectionsStore((state) => state.setSelectedLabels)
+    const setSelectedDeviceIds = useDetectionsStore((state) => state.setSelectedDeviceIds)
+
+    console.log(JSON.stringify({ labels, selectedLabels }, null, 4))
 
     useEffect(() => {
         const controller = new AbortController()
-        getLabels(controller)
-            .then(ls => {
-                const sortedLabels: string[] = ls.toSorted()
-                setLabels(sortedLabels)
-                setSelectedLabels(sortedLabels)
-            })
-            .catch(err => {
-                if (err.name === 'AbortError') {
-                    return Promise.resolve([])
-                }
-                throw err
-            })
 
-        getDevices(controller)
-            .then(ds => {
-                setDevices(ds)
-                setSelectedIds(ds.map(({id}) => id))
-                return ds
-            })
-            .then(onFiltersChange)
-            .catch(err => {
-                if (err.name === 'AbortError') {
-                    return Promise.resolve([])
-                }
-                return Promise.reject(err)
-            })
+        void loadFilters(controller)
 
         return () => {
             controller.abort()
         }
-    }, [])
+    }, [loadFilters])
+
+    const loading = loadingFilters || loadingDetections
 
     return (
         <div className="w-full">
-            {/* Filter Form */}
-            <Group className={"p-4"}>
-                <div className={"px-4"}>
+            <Group className="p-4">
+                <div className="px-4">
                     <MultiSelect
                         label="Labels"
                         data={labels}
-                        onChange={value => {
-                            setSelectedLabels(value)
-                            return onFiltersChange()
+                        disabled={loadingFilters}
+                        onChange={(value) => {
+                            void setSelectedLabels(value)
                         }}
                         value={selectedLabels}
                     />
                 </div>
-                <div className={"px-4"}>
+
+                <div className="px-4">
                     <MultiSelect
                         label="Devices"
-                        data={devices.map(({id, name}) => (
-                            {
-                                value: String(id),
-                                label: name
-                            }
-                        ))}
-                        onChange={value => {
-                            const ids: number[] = value.map(Number)
-                            setSelectedIds(ids)
-                            return onFiltersChange()
+                        data={devices.map(({id, name}) => ({
+                            value: String(id),
+                            label: name
+                        }))}
+                        disabled={loadingFilters}
+                        onChange={(value) => {
+                            void setSelectedDeviceIds(value.map(Number))
                         }}
-                        value={selectedIds.map(String)}
+                        value={selectedDeviceIds.map(String)}
                     />
                 </div>
             </Group>
-            <div className={"px-4"}>
-                <Stack gap={6} justify={'center'}>
+
+            <div className="px-4">
+                {error ? (
+                    <Alert color="red" mb="md">
+                        {error}
+                    </Alert>
+                ) : null}
+
+                {loading ? <Loader mb="md"/> : null}
+
+                <Stack gap={6} justify="center">
                     {detections.map((detection) => (
                         <DetectionCard
                             key={detection.id}
@@ -109,7 +96,6 @@ export default function DetectionsPage() {
                     ))}
                 </Stack>
             </div>
-
         </div>
     )
 }

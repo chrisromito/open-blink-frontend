@@ -24,7 +24,7 @@ export const getLabels = cache(async (controller: AbortController): Promise<stri
 })
 
 
-export type DetectionEventParams = {
+export type TTimelineParams = {
     page?: number
     start?: Date
     end?: Date
@@ -34,7 +34,7 @@ export async function getDetectionEvents({
                                              page,
                                              start,
                                              end
-                                         }: DetectionEventParams): Promise<TDetectionEvent[]> {
+                                         }: TTimelineParams): Promise<TDetectionEvent[]> {
     const params = new URLSearchParams()
     if (page !== undefined) {
         params.set('page', String(page))
@@ -50,6 +50,9 @@ export async function getDetectionEvents({
         headers: {
             'Content-Type': 'application/json'
         }
+    }).catch(err => {
+        console.error(`Failed to fetch from: ${getUrl('/api/event', params)}`)
+        return Promise.reject(err)
     })
 
     if (!response.ok) {

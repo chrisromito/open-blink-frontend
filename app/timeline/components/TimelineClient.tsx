@@ -1,42 +1,60 @@
 'use client'
 
-import {ReactNode, useState, useTransition} from 'react'
+import {useEffect, useState} from 'react'
 import {usePathname, useRouter, useSearchParams} from 'next/navigation'
-
-import {Grid, Loader} from '@mantine/core'
+import {Alert, Grid, Loader} from '@mantine/core'
 import {DateTimePicker} from '@mantine/dates'
 
-import {TDetectionEvent} from '@/app/types'
-import EventTimeline from '@/app/timeline/components/EventTimeline'
 import EventList from '@/app/timeline/components/EventList'
+import EventTimeline from './EventTimeline'
+import {useTimelineStore} from '@/app/timeline/store/provider'
 
-type TimelineClientProps = {
-    events: TDetectionEvent[]
-    start: string | null
-    end: string | null
-    selectedEventId: number | null
-    children: ReactNode
+const parseDate = (value: string | null): Date | undefined => {
+    if (!value) {
+        return undefined
+    }
+
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? undefined : date
 }
 
-export default function TimelineClient({
-                                           events,
-                                           start,
-                                           end,
-                                           selectedEventId,
-                                           children
-                                       }: TimelineClientProps) {
+const parseNumber = (value: string | null): number | null => {
+    if (!value) {
+        return null
+    }
+
+    const number = Number(value)
+    return Number.isInteger(number) && number > 0 ? number : null
+}
+
+export default function TimelineClient() {
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
-    const [isPending, startTransition] = useTransition()
-    const [startDt, setStart] = useState<string | null>(start)
-    const [endDt, setEnd] = useState<string | null>(end)
 
-    const navigateWithParams = (
+    const loading = useTimelineStore((state) => state.loading)
+    const error = useTimelineStore((state) => state.error)
+    const loadEvents = useTimelineStore((state) => state.loadEvents)
+
+    const startParam = searchParams.get('start')
+    const endParam = searchParams.get('end')
+    const pageParam = searchParams.get('page')
+    const eventParam = searchParams.get('event')
+
+    const [startDraft, setStartDraft] = useState<string | null>(startParam)
+    const [endDraft, setEndDraft] = useState<string | null>(endParam)
+
+    useEffect(()=> {
+        loadEvents({
+            page: parseNumber(pageParam) ?? 1,
+            start: parseDate(startParam),
+            end: parseDate(endParam)
+        })
+    }, [loadEvents])
+
+    const updateUrl = (
         updateParams: (params: URLSearchParams) => void,
-        options?: {
-            replace?: boolean
-        }
+        replace = false
     ) => {
         const params = new URLSearchParams(searchParams.toString())
 
@@ -45,35 +63,28 @@ export default function TimelineClient({
         const query = params.toString()
         const href = query ? `${pathname}?${query}` : pathname
 
-        startTransition(() => {
-            if (options?.replace) {
-                router.replace(href)
-            } else {
-                router.push(href)
-            }
-        })
+        if (replace) {
+            router.replace(href, {scroll: false})
+        } else {
+            router.push(href, {scroll: false})
+        }
     }
 
     const updateDateFilter = (key: 'start' | 'end', value: string | null) => {
-        console.log(JSON.stringify({key, value}, null, 4))
-        navigateWithParams((params) => {
+        updateUrl((params) => {
             if (value) {
                 params.set(key, new Date(value).toISOString())
             } else {
                 params.delete(key)
             }
 
-            params.set('page', '0')
-
-            // The selected event may no longer match the new filter range.
+            params.set('page', '1')
             params.delete('event')
-        }, {
-            replace: true
-        })
+        }, true)
     }
 
-    const selectEvent = (eventId: number) => {
-        navigateWithParams((params) => {
+    const selectEventId = (eventId: number) => {
+        updateUrl((params) => {
             params.set('event', String(eventId))
         })
     }
@@ -84,37 +95,39 @@ export default function TimelineClient({
                 <Grid.Col span={4}>
                     <DateTimePicker
                         label="Start Date"
-                        value={startDt}
-                        disabled={isPending}
-                        onChange={(value) => setStart(value)}
-                        onDropdownClose={()=> updateDateFilter('start', startDt)}
+                        value={startDraft}
+                        disabled={loading}
+                        onChange={setStartDraft}
+                        onDropdownClose={() => updateDateFilter('start', startDraft)}
                     />
                 </Grid.Col>
 
                 <Grid.Col span={4}>
                     <DateTimePicker
                         label="End Date"
-                        value={endDt}
-                        disabled={isPending}
-                        onChange={(value) => setEnd(value)}
-                        onDropdownClose={()=> updateDateFilter('end', endDt)}
+                        value={endDraft}
+                        disabled={loading}
+                        onChange={setEndDraft}
+                        onDropdownClose={() => updateDateFilter('end', endDraft)}
                     />
                 </Grid.Col>
             </Grid>
 
             <Grid mt="md">
                 <Grid.Col span={{base: 12, lg: 3}}>
-                    {isPending ? <Loader/> : null}
+                    {loading ? <Loader/> : null}
 
-                    <EventList
-                        events={events}
-                        selectedId={selectedEventId}
-                        setSelectedId={selectEvent}
-                    />
+                    {error ? (
+                        <Alert color="red" mb="md">
+                            {error}
+                        </Alert>
+                    ) : null}
+
+                    <EventList />
                 </Grid.Col>
 
                 <Grid.Col span={{base: 12, lg: 9}}>
-                    {children}
+                    <EventTimeline />
                 </Grid.Col>
             </Grid>
         </div>

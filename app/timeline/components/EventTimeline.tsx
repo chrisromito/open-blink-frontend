@@ -1,24 +1,25 @@
-/**
- * EventTimeline renders DetectionEvents
- *  Accepts `setSelected` & `selected`
- */
+'use client'
+
 import Link from 'next/link'
 import {Text, Timeline} from '@mantine/core'
 import {TimeValue} from '@mantine/dates'
 import {useViewportSize} from '@mantine/hooks'
-import {TDetectionEvent} from '@/app/types'
+import type {TDetectionEvent} from '@/app/types'
 import {formatDate} from '@/app/lib/dateUtils'
+import {useTimelineStore} from '@/app/timeline/store/provider'
 
-export type EventTimelineProps = {
-    events: TDetectionEvent[]
-    selectedId: number | null
-    setSelectedId(value: number): void
-}
+export default function EventTimeline() {
+    const events = useTimelineStore((state) => state.events)
+    const selectedId = useTimelineStore((state) => state.selectedEvent.id)
+    const selectEvent = useTimelineStore((state) => state.selectEvent)
+    const selectedIndex = useTimelineStore(state => !state.selectedEvent.id ? -1 : state.events.find(({id}) => id === state.selectedEvent.id))
 
 
-export default function EventTimeline({events, selectedId, setSelectedId}: EventTimelineProps) {
-    const selectedIndex = selectedId === null ? 0 : events.findIndex(({id}) => id === selectedId)
-    const {height, width} = useViewportSize()
+    // const selectedIndex = selectedId === null
+    //     ? -1
+    //     : events.findIndex(({id}) => id === selectedId)
+
+    const {width} = useViewportSize()
     const isMobile = width < 700
 
     return (
@@ -36,11 +37,12 @@ export default function EventTimeline({events, selectedId, setSelectedId}: Event
                         </Timeline.Item>
                     )
                 }
+
                 return (
                     <Timeline.Item
                         key={evt.id}
                         title={evt.labels.join(', ')}
-                        onClick={() => setSelectedId(evt.id)}
+                        onClick={() => void selectEvent(evt.id)}
                     >
                         <TimelineItem event={evt}/>
                     </Timeline.Item>
@@ -50,10 +52,10 @@ export default function EventTimeline({events, selectedId, setSelectedId}: Event
     )
 }
 
-
 function TimelineItem({event}: { event: TDetectionEvent }) {
-    const startTime: Date = new Date(event.created_at)
-    const endTime: Date | null = event.ended_at ? new Date(event.ended_at) : null
+    const startTime = new Date(event.created_at)
+    const endTime = event.ended_at ? new Date(event.ended_at) : null
+
     return (
         <>
             <Text c="dimmed" size="sm">
@@ -61,7 +63,7 @@ function TimelineItem({event}: { event: TDetectionEvent }) {
                 {!endTime ? null : ' - '}
                 {!endTime ? null : <TimeValue value={endTime} format="12h"/>}
             </Text>
-            {/* Date */}
+
             <Text c="dimmed" size="sm">
                 {formatDate(startTime)}
             </Text>
