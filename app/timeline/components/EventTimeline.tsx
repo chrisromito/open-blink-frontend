@@ -10,14 +10,8 @@ import {useTimelineStore} from '@/app/timeline/store/provider'
 
 export default function EventTimeline() {
     const events = useTimelineStore((state) => state.events)
-    const selectedId = useTimelineStore((state) => state.selectedEvent.id)
     const selectEvent = useTimelineStore((state) => state.selectEvent)
-    const selectedIndex = useTimelineStore(state => !state.selectedEvent.id ? -1 : state.events.find(({id}) => id === state.selectedEvent.id))
-
-
-    // const selectedIndex = selectedId === null
-    //     ? -1
-    //     : events.findIndex(({id}) => id === selectedId)
+    const selectedIndex: number = useTimelineStore(state => !state.selectedEvent.id ? -1 : state.events.findIndex(({id}) => id === state.selectedEvent.id))
 
     const {width} = useViewportSize()
     const isMobile = width < 700
